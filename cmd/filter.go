@@ -35,15 +35,15 @@ var rootCmd = &cobra.Command{
 		directory, _ := cmd.Flags().GetBool("directory")
 
 		if recursive || directory {
-			ProcessDirectory(filename, regex, output, selectFlag, directory, recursive, replace)
+			ProcessDirectory(filename, regex, output, selectFlag, recursive, replace)
 		} else {
 
-			ProcessFile(filename, regex, output, selectFlag, directory, recursive, replace)
+			ProcessFile(filename, regex, output, selectFlag, replace)
 		}
 	},
 }
 
-func ProcessFile(filename, regex, output string, selectFlag, cgzFlag, czFlag bool, replace string) {
+func ProcessFile(filename, regex, output string, selectFlag bool, replace string) {
 	re := regexp.MustCompile(`.*\.(zip|gz)$`)
 
 	if re.MatchString(filename) {
@@ -101,7 +101,7 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 }
 
 // TODO: Implement concurrent file processing using goroutines and channels
-func ProcessDirectory(directory, regex, output string, selectFlag, cgzFlag, czFlag bool, replace string) {
+func ProcessDirectory(directory, regex, output string, selectFlag, recursive bool, replace string) {
 	// Walk through the directory
 	dir, err := os.ReadDir(directory)
 	if err != nil {
@@ -112,12 +112,12 @@ func ProcessDirectory(directory, regex, output string, selectFlag, cgzFlag, czFl
 		// Check if it's a directory
 		if entry.IsDir() {
 			// Recursively process subdirectory
-			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, cgzFlag, czFlag, replace)
+			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
 		}
 		// Seperate the file name
 		filePath := directory + string(os.PathSeparator) + entry.Name()
 		// Process the file
-		ProcessFile(filePath, regex, output, selectFlag, cgzFlag, czFlag, replace)
+		ProcessFile(filePath, regex, output, selectFlag, directory, recursive, replace)
 	}
 }
 
