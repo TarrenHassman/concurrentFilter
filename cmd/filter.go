@@ -49,6 +49,66 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func Execute() {
+	cobra.CheckErr(rootCmd.Execute())
+}
+
+func init() {
+	rootCmd.Flags().BoolP("select", "s", false, "Create a new file with the selected text")
+	rootCmd.Flags().StringP("replace", "r", "", "Replace the text")
+	rootCmd.Flags().BoolP("recursive", "R", false, "Recursive on all files in directory")
+	rootCmd.Flags().BoolP("directory", "d", false, "Process all files in a directory")
+}
+
+// TODO: Implement concurrent file processing using goroutines and channels
+func ProcessDirectory(directory, regex, output string, selectFlag, recursive bool, replace string) {
+	// Go routine setup
+	ch := make(chan struct{}, 10)
+	var wg sync.WaitGroup
+
+	// Walk through the directory
+	dir, err := os.ReadDir(directory)
+	if err != nil {
+		println("Error reading directory:", err.Error())
+		return
+	}
+	for _, entry := range dir {
+		// create a goroutine for each file / directory
+		wg.Add(1)
+		go processEntry(entry, directory, regex, output, selectFlag, recursive, replace, ch, &wg)
+		// Check if it's a directory
+		if entry.IsDir() && recursive {
+			// Recursively process subdirectory
+			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
+		}
+		// Seperate the file name
+		filePath := directory + string(os.PathSeparator) + entry.Name()
+		// Process the file
+		ProcessFile(filePath, regex, output, selectFlag, replace)
+	}
+
+	defer close(ch)
+	defer wg.Done()
+}
+
+func processEntry(entry os.DirEntry, directory, regex, output string, selectFlag, recursive bool, replace string, ch chan struct{}, wg *sync.WaitGroup) {
+	ch <- struct{}{}
+
+	// Check if it's a directory
+	if entry.IsDir() && recursive {
+		ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
+	}
+	// Seperate the file name
+	filePath := directory + string(os.PathSeparator) + entry.Name()
+	// Process the file
+	ProcessFile(filePath, regex, output, selectFlag, replace)
+
+	defer func() {
+		<-ch
+		wg.Done()
+	}()
+}
+
 func ProcessFile(filename, regex, output string, selectFlag bool, replace string) {
 	re := regexp.MustCompile(`.*\.(zip|gz)$`)
 
@@ -102,62 +162,4 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 			return
 		}
 	}
-}
-
-// TODO: Implement concurrent file processing using goroutines and channels
-func ProcessDirectory(directory, regex, output string, selectFlag, recursive bool, replace string) {
-	// Go routine setup
-	ch := make(chan struct{}, 10)
-	var wg sync.WaitGroup
-
-	// Walk through the directory
-	dir, err := os.ReadDir(directory)
-	if err != nil {
-		println("Error reading directory:", err.Error())
-		return
-	}
-	for _, entry := range dir {
-		// create a goroutine for each file / directory
-		wg.Add(1)
-		go processEntry(entry, directory, regex, output, selectFlag, recursive, replace, ch, &wg)
-		// Check if it's a directory
-		if entry.IsDir() && recursive {
-			// Recursively process subdirectory
-			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
-		}
-		// Seperate the file name
-		filePath := directory + string(os.PathSeparator) + entry.Name()
-		// Process the file
-		ProcessFile(filePath, regex, output, selectFlag, replace)
-	}
-
-	defer close(ch)
-	defer wg.Done()
-}
-
-func processEntry(entry os.DirEntry, directory, regex, output string, selectFlag, recursive bool, replace string, ch chan struct{}, wg *sync.WaitGroup) {
-	ch <- struct{}{}
-	defer func() {
-		<-ch
-		wg.Done()
-	}()
-	// Check if it's a directory
-	if entry.IsDir() && recursive {
-		ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
-	}
-	// Seperate the file name
-	filePath := directory + string(os.PathSeparator) + entry.Name()
-	// Process the file
-	ProcessFile(filePath, regex, output, selectFlag, replace)
-}
-
-func Execute() {
-	cobra.CheckErr(rootCmd.Execute())
-}
-
-func init() {
-	rootCmd.Flags().BoolP("select", "s", false, "Create a new file with the selected text")
-	rootCmd.Flags().StringP("replace", "r", "", "Replace the text")
-	rootCmd.Flags().BoolP("recursive", "R", false, "Recursive on all files in directory")
-	rootCmd.Flags().BoolP("directory", "d", false, "Process all files in a directory")
 }
