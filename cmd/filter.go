@@ -55,10 +55,12 @@ func ProcessFile(filename, regex, output string, selectFlag, cgzFlag, czFlag boo
 }
 
 // TODO: Implement concurrent file processing using goroutines and channels
+// TODO: Add support for .gz files
+// TODO: filter and write concurrently
 func filter(filename, regex, output string, selectFlag bool, replace string) {
 
 	// Open the file
-	file, err := os.Open(filename)
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		println("Error opening file:", err.Error())
 		return
@@ -72,8 +74,21 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 		return
 	}
 
+	// ifSelect flag is true, create a new file with the selected text
+
 	// Filter the file
 	filteredContent := regexp.MustCompile(regex).ReplaceAll(content, []byte(replace))
+	if selectFlag {
+		filteredContent := regexp.MustCompile(regex).FindAll(content, -1)
+		for _, v := range filteredContent {
+			err = os.WriteFile(output, v, 0644)
+			if err != nil {
+				println("Error writing file:", err.Error())
+				return
+			}
+		}
+		return
+	}
 
 	// Write the file
 	if !selectFlag {
