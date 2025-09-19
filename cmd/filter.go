@@ -34,6 +34,11 @@ var rootCmd = &cobra.Command{
 		recursive, _ := cmd.Flags().GetBool("recursive")
 		directory, _ := cmd.Flags().GetBool("directory")
 
+		if filename == "" || regex == "" || output == "" {
+			cmd.Help()
+			return
+		}
+
 		if recursive || directory {
 			ProcessDirectory(filename, regex, output, selectFlag, recursive, replace)
 		} else {
