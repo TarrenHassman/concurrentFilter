@@ -73,11 +73,7 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 		println("Error reading file:", err.Error())
 		return
 	}
-
 	// ifSelect flag is true, create a new file with the selected text
-
-	// Filter the file
-	filteredContent := regexp.MustCompile(regex).ReplaceAll(content, []byte(replace))
 	if selectFlag {
 		filteredContent := regexp.MustCompile(regex).FindAll(content, -1)
 		for _, v := range filteredContent {
@@ -90,6 +86,8 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 		return
 	}
 
+	// Filter the file
+	filteredContent := regexp.MustCompile(regex).ReplaceAll(content, []byte(replace))
 	// Write the file
 	if !selectFlag {
 		err = os.WriteFile(output, filteredContent, 0644)
