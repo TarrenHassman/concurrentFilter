@@ -110,7 +110,7 @@ func ProcessDirectory(directory, regex, output string, selectFlag, recursive boo
 	}
 	for _, entry := range dir {
 		// Check if it's a directory
-		if entry.IsDir() {
+		if entry.IsDir() && recursive {
 			// Recursively process subdirectory
 			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
 		}
