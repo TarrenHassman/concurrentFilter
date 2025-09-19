@@ -117,7 +117,7 @@ func ProcessDirectory(directory, regex, output string, selectFlag, recursive boo
 		// Seperate the file name
 		filePath := directory + string(os.PathSeparator) + entry.Name()
 		// Process the file
-		ProcessFile(filePath, regex, output, selectFlag, directory, recursive, replace)
+		ProcessFile(filePath, regex, output, selectFlag, replace)
 	}
 }
 
