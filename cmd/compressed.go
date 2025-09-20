@@ -12,6 +12,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Initial zip worker function from stackoverflow
+
 const numOfZipWorkers = 10
 
 type entry struct {

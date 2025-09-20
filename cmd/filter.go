@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 	filter <directory> <regex> <output> --directory
 		--directory process all files in a directory
 	`,
-	Args: cobra.MinimumNArgs(3),
+	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		filename := args[0]
 		regex := args[1]
@@ -34,8 +34,7 @@ var rootCmd = &cobra.Command{
 		replace, _ := cmd.Flags().GetString("replace")
 		recursive, _ := cmd.Flags().GetBool("recursive")
 		directory, _ := cmd.Flags().GetBool("directory")
-
-		if filename == "" || regex == "" || output == "" {
+		if (output == "" && !(recursive || directory)) || filename == "" || regex == "" {
 			cmd.Help()
 			return
 		}
