@@ -34,11 +34,11 @@ var rootCmd = &cobra.Command{
 		replace, _ := cmd.Flags().GetString("replace")
 		recursive, _ := cmd.Flags().GetBool("recursive")
 		directory, _ := cmd.Flags().GetBool("directory")
+		//TODO: add output flag for select and replace
 		if (output == "" && !(recursive || directory)) || filename == "" || regex == "" {
 			cmd.Help()
 			return
 		}
-
 		if recursive || directory {
 			ProcessDirectory(filename, regex, output, selectFlag, recursive, replace)
 		} else {
@@ -75,15 +75,6 @@ func ProcessDirectory(directory, regex, output string, selectFlag, recursive boo
 		// create a goroutine for each file / directory
 		wg.Add(1)
 		go processEntry(entry, directory, regex, output, selectFlag, recursive, replace, ch, &wg)
-		// Check if it's a directory
-		if entry.IsDir() && recursive {
-			// Recursively process subdirectory
-			ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
-		}
-		// Seperate the file name
-		filePath := directory + string(os.PathSeparator) + entry.Name()
-		// Process the file
-		ProcessFile(filePath, regex, output, selectFlag, replace)
 	}
 
 	defer close(ch)
