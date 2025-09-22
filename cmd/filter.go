@@ -24,6 +24,8 @@ var rootCmd = &cobra.Command{
 		--recursive recursive on all files in directory
 	filter <directory> <regex> <output> --directory
 		--directory process all files in a directory
+	filter <directory> <regex> <output> --workers <num>
+		--workers number of concurrent workers to use (default 10)
 	`,
 	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -34,13 +36,14 @@ var rootCmd = &cobra.Command{
 		replace, _ := cmd.Flags().GetString("replace")
 		recursive, _ := cmd.Flags().GetBool("recursive")
 		directory, _ := cmd.Flags().GetBool("directory")
+		workers, _ := cmd.Flags().GetInt("workers")
 		//TODO: add output flag for select and replace
 		if (output == "" && !(recursive || directory)) || filename == "" || regex == "" {
 			cmd.Help()
 			return
 		}
 		if recursive || directory {
-			ProcessDirectory(filename, regex, output, selectFlag, recursive, replace)
+			ProcessDirectory(filename, regex, output, selectFlag, recursive, replace, workers)
 		} else {
 
 			ProcessFile(filename, regex, output, selectFlag, replace)
@@ -57,12 +60,13 @@ func init() {
 	rootCmd.Flags().StringP("replace", "r", "", "Replace the text")
 	rootCmd.Flags().BoolP("recursive", "R", false, "Recursive on all files in directory")
 	rootCmd.Flags().BoolP("directory", "d", false, "Process all files in a directory")
+	rootCmd.Flags().IntP("workers", "w", 10, "Number of concurrent workers to use (default 10)")
 }
 
 // TODO: Implement concurrent file processing using goroutines and channels
-func ProcessDirectory(directory, regex, output string, selectFlag, recursive bool, replace string) {
+func ProcessDirectory(directory, regex, output string, selectFlag, recursive bool, replace string, workers int) {
 	// Go routine setup
-	ch := make(chan struct{}, 10)
+	ch := make(chan struct{}, workers)
 	var wg sync.WaitGroup
 
 	// Walk through the directory
@@ -86,7 +90,7 @@ func processEntry(entry os.DirEntry, directory, regex, output string, selectFlag
 
 	// Check if it's a directory
 	if entry.IsDir() && recursive {
-		ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace)
+		ProcessDirectory(directory+string(os.PathSeparator)+entry.Name(), regex, output, selectFlag, recursive, replace, len(ch)) // Recursive call
 	}
 	// Seperate the file name
 	filePath := directory + string(os.PathSeparator) + entry.Name()
@@ -112,7 +116,6 @@ func ProcessFile(filename, regex, output string, selectFlag bool, replace string
 
 // TODO: Implement concurrent file processing using goroutines and channels
 // TODO: Add support for .gz files
-// TODO: filter and write concurrently
 func filter(filename, regex, output string, selectFlag bool, replace string) {
 
 	// Open the file
@@ -123,6 +126,7 @@ func filter(filename, regex, output string, selectFlag bool, replace string) {
 	}
 	defer file.Close()
 
+	// TODO: filter and write concurrently
 	// Read the file
 	content, err := os.ReadFile(filename)
 	if err != nil {
